@@ -5,6 +5,8 @@
 /CustomerAgentBackend/build/
 !gradle/wrapper/gradle-wrapper.jar
 
+tmp
+
 target/
 !.mvn/wrapper/maven-wrapper.jar
 

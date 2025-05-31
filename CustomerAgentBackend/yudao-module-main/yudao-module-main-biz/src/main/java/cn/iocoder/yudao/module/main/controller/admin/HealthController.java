@@ -2,6 +2,7 @@ package cn.iocoder.yudao.module.main.controller.admin;
 
 import cn.iocoder.yudao.framework.common.pojo.CommonResult;
 import cn.iocoder.yudao.module.main.app.CustomerApp;
+import cn.iocoder.yudao.module.main.rag.CustomerAppDocumentLoader;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
@@ -24,7 +25,7 @@ public class HealthController {
     private CustomerApp customerApp;
 
     @GetMapping("/chat")
-    @Operation(summary = "获取 test 信息")
+    @Operation(summary = "测试基于内存的会话记忆多轮对话")
     public CommonResult<String> chat() {
         String chatId = UUID.randomUUID().toString();
         String message = "你好，我是小艾。";
@@ -37,11 +38,20 @@ public class HealthController {
     }
 
     @GetMapping("/chat/report")
-    @Operation(summary = "获取 test 信息")
+    @Operation(summary = "测试结构化输出内容")
     public CommonResult<String> chatReport() {
         String chatId = UUID.randomUUID().toString();
         String message = "你好，我是小艾。";
-        CustomerApp.LoveReport loveReport = customerApp.doChatWithReport(message, chatId);
+        CustomerApp.CustomerReport customerReport = customerApp.doChatWithReport(message, chatId);
+        return success("true");
+    }
+
+    @GetMapping("/chat/rag")
+    @Operation(summary = "测试rag增强会话")
+    public CommonResult<String> testLoadMarkdowns() {
+        String chatId = UUID.randomUUID().toString();
+        String message = "我是一名男生，瘦高，皮肤偏黑的穿搭技巧是什么？";
+        String s = customerApp.doChatWithRag(message, chatId);
         return success("true");
     }
 
