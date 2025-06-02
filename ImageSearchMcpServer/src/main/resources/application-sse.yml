@@ -1,0 +1,8 @@
+spring:
+  ai:
+    mcp:
+      server: ImageSearchMcpServer
+      version: 0.0.1
+      type: SYNC
+      stdio: false
+
