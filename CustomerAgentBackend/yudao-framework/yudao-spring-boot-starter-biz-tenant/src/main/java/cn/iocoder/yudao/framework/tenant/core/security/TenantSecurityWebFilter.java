@@ -75,21 +75,21 @@ public class TenantSecurityWebFilter extends ApiRequestFilter {
 
         // 如果非允许忽略租户的 URL，则校验租户是否合法
         if (!isIgnoreUrl(request)) {
-            // 2. 如果请求未带租户的编号，不允许访问。
-            if (tenantId == null) {
-                log.error("[doFilterInternal][URL({}/{}) 未传递租户编号]", request.getRequestURI(), request.getMethod());
-                ServletUtils.writeJSON(response, CommonResult.error(GlobalErrorCodeConstants.BAD_REQUEST.getCode(),
-                        "请求的租户标识未传递，请进行排查"));
-                return;
-            }
-            // 3. 校验租户是合法，例如说被禁用、到期
-            try {
-                tenantFrameworkService.validTenant(tenantId);
-            } catch (Throwable ex) {
-                CommonResult<?> result = globalExceptionHandler.allExceptionHandler(request, ex);
-                ServletUtils.writeJSON(response, result);
-                return;
-            }
+            // // 2. 如果请求未带租户的编号，不允许访问。
+            // if (tenantId == null) {
+            //     log.error("[doFilterInternal][URL({}/{}) 未传递租户编号]", request.getRequestURI(), request.getMethod());
+            //     ServletUtils.writeJSON(response, CommonResult.error(GlobalErrorCodeConstants.BAD_REQUEST.getCode(),
+            //             "请求的租户标识未传递，请进行排查"));
+            //     return;
+            // }
+            // // 3. 校验租户是合法，例如说被禁用、到期
+            // try {
+            //     tenantFrameworkService.validTenant(tenantId);
+            // } catch (Throwable ex) {
+            //     CommonResult<?> result = globalExceptionHandler.allExceptionHandler(request, ex);
+            //     ServletUtils.writeJSON(response, result);
+            //     return;
+            // }
         } else { // 如果是允许忽略租户的 URL，若未传递租户编号，则默认忽略租户编号，避免报错
             if (tenantId == null) {
                 TenantContextHolder.setIgnore(true);

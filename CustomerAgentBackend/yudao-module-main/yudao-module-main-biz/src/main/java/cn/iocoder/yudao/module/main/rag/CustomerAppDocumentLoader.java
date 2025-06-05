@@ -19,6 +19,7 @@ public class CustomerAppDocumentLoader {
 
     private final ResourcePatternResolver resourcePatternResolver;
 
+
     public CustomerAppDocumentLoader(ResourcePatternResolver resourcePatternResolver) {
         this.resourcePatternResolver = resourcePatternResolver;
     }

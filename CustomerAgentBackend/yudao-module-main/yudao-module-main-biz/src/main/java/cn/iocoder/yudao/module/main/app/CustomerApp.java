@@ -1,7 +1,6 @@
 package cn.iocoder.yudao.module.main.app;
 
 import cn.iocoder.yudao.module.main.advisor.MyLoggerAdvisor;
-import cn.iocoder.yudao.module.main.advisor.ReReadingAdvisor;
 import cn.iocoder.yudao.module.main.chatmemory.FileBaseChatMemory;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
@@ -9,11 +8,13 @@ import org.springframework.ai.chat.client.ChatClient;
 import org.springframework.ai.chat.client.advisor.MessageChatMemoryAdvisor;
 import org.springframework.ai.chat.client.advisor.QuestionAnswerAdvisor;
 import org.springframework.ai.chat.memory.ChatMemory;
-import org.springframework.ai.chat.memory.InMemoryChatMemory;
 import org.springframework.ai.chat.model.ChatModel;
 import org.springframework.ai.chat.model.ChatResponse;
+import org.springframework.ai.tool.ToolCallback;
+import org.springframework.ai.tool.ToolCallbackProvider;
 import org.springframework.ai.vectorstore.VectorStore;
 import org.springframework.stereotype.Component;
+import reactor.core.publisher.Flux;
 
 import java.util.List;
 
@@ -27,6 +28,9 @@ public class CustomerApp {
     private final ChatClient chatClient;
 
     private static final String SYSTEM_PROMPT = "你是一个智能衣服推荐助手，能根据用户提供信息提供穿搭建议列表，请根据用户的问题，提供专业的回答。";
+
+    @Resource
+    private QueryRewriter queryRewriter;
 
     public CustomerApp(ChatModel chatModel) {
         // ChatMemory chatMemory = new InMemoryChatMemory(); // 基于内存的会话记忆
@@ -62,6 +66,17 @@ public class CustomerApp {
 
     }
 
+    public Flux<String> doChatByStream(String message, String chatId) {
+        return chatClient
+                .prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .stream()
+                .content();
+    }
+
+
     public record CustomerReport(String title, List<String> suggestions) {
 
     }
@@ -90,12 +105,17 @@ public class CustomerApp {
     private VectorStore customerAppVectorStore;
 
     public String doChatWithRag(String message, String chatId) {
+        // 使用ai增强用户的问题
+        String rewriteMessage = queryRewriter.doQueryRewrite(message);
         ChatResponse chatResponse = chatClient
                 .prompt()
-                .user(message)
-                .advisors(advisorSpec -> advisorSpec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
-                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                .user(rewriteMessage)
                 .advisors(new MyLoggerAdvisor())
+                .advisors(
+                        advisorSpec -> advisorSpec
+                        .param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10)
+                )
                 .advisors(new QuestionAnswerAdvisor(customerAppVectorStore))
                 .call()
                 .chatResponse();
@@ -103,4 +123,49 @@ public class CustomerApp {
         log.info("content: {}", context);
         return context;
     }
+
+    @Resource
+    private ToolCallback[] allTools;
+
+    public String doChatWithTools(String message, String chatId) {
+        ChatResponse response = chatClient
+                .prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                // 开启日志，便于观察效果
+                .advisors(new MyLoggerAdvisor())
+                .tools(allTools)
+                .call()
+                .chatResponse();
+        String content = response.getResult().getOutput().getText();
+        log.info("content: {}", content);
+        return content;
+    }
+
+    @Resource
+    private ToolCallbackProvider toolCallbackProvider;
+
+    /**
+     * 使用自定义MCP服务
+     * @param message
+     * @param chatId
+     * @return
+     */
+    public String doChatWithMcp(String message, String chatId) {
+        ChatResponse response = chatClient
+                .prompt()
+                .user(message)
+                .advisors(spec -> spec.param(CHAT_MEMORY_CONVERSATION_ID_KEY, chatId)
+                        .param(CHAT_MEMORY_RETRIEVE_SIZE_KEY, 10))
+                // 开启日志，便于观察效果
+                .advisors(new MyLoggerAdvisor())
+                .tools(toolCallbackProvider)
+                .call()
+                .chatResponse();
+        String content = response.getResult().getOutput().getText();
+        log.info("content: {}", content);
+        return content;
+    }
+
 }

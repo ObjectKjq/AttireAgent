@@ -15,12 +15,15 @@ public class CustomerAppVectorStoreConfig {
 
     @Resource
     private CustomerAppDocumentLoader customerAppDocumentLoader;
+    @Resource
+    private MyKeyWordEnricher myKeyWordEnricher;
 
     @Bean
     VectorStore customerAppVectorStore(EmbeddingModel dashscopeEmbeddingModel) {
         // 基于内存的向量存储
         SimpleVectorStore simpleVectorStore = SimpleVectorStore.builder(dashscopeEmbeddingModel).build();
         List<Document> documents = customerAppDocumentLoader.loadMarkdowns();
+        documents = myKeyWordEnricher.enrichDocuments(documents);
         simpleVectorStore.add(documents);
         return simpleVectorStore;
     }
